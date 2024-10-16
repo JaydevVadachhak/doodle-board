@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Doodle Board</title>
+
+    <!-- STYLE -->
+    <link rel="stylesheet" href="./app.css" />
+</head>
+
+<body>
+    <header class="sticky-header">
+        <nav>
+            <div class="title">Doodle Board</div>
+        </nav>
+    </header>
+
+    <div class="container">
+        <div class="toolbox">
+            <label for="toolSelector">Tool:</label>
+            <select id="toolSelector">
+                <option value="pencil">Pencil</option>
+                <option value="eraser">Eraser</option>
+                <option value="rectangle">Rectangle</option>
+                <option value="line">Line</option>
+                <option value="circle">Circle</option>
+            </select>
+
+            <label for="colorPicker">Color:</label>
+            <input type="color" id="colorPicker" value="#000000" />
+
+            <label for="brushSize">Brush Size:</label>
+            <input type="number" id="brushSize" value="5" min="1" />
+
+            <label for="eraserSize">Eraser Size:</label>
+            <input type="number" id="eraserSize" value="30" min="1" />
+
+            <button id="clearButton">Clear Canvas</button>
+            <button id="saveButton">Save Drawing</button>
+        </div>
+
+        <div class="canvas-container">
+            <canvas id="canvas" width="1000" height="500"></canvas>
+            <canvas id="magnifier" width="100" height="100"></canvas>
+        </div>
+    </div>
+
+    <!-- SCRIPT -->
+    <script src="./index.js"></script>
+</body>
+
+</html>
