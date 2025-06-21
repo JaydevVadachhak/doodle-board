@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Doodle Board Gallery</title>
+
+    <!-- STYLE -->
+    <link rel="stylesheet" href="./app.css" />
+    <style>
+      .gallery-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 20px;
+        padding: 20px 0;
+      }
+
+      .gallery-item {
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        overflow: hidden;
+        background-color: white;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s;
+      }
+
+      .gallery-item:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      }
+
+      .gallery-item img {
+        width: 100%;
+        height: 200px;
+        object-fit: contain;
+        background-color: #f9f9f9;
+      }
+
+      .gallery-item-info {
+        padding: 15px;
+      }
+
+      .gallery-item-title {
+        font-size: 18px;
+        margin: 0 0 10px 0;
+      }
+
+      .gallery-item-date {
+        color: #666;
+        font-size: 14px;
+      }
+
+      .gallery-item-actions {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 10px;
+      }
+
+      .gallery-item-actions button {
+        padding: 6px 12px;
+        border: none;
+        border-radius: 3px;
+        background-color: #007bff;
+        color: white;
+        cursor: pointer;
+      }
+
+      .gallery-item-actions button:hover {
+        background-color: #0056b3;
+      }
+
+      .gallery-empty {
+        text-align: center;
+        padding: 40px;
+        color: #666;
+      }
+
+      .gallery-loader {
+        text-align: center;
+        padding: 40px;
+      }
+
+      .spinner {
+        border: 4px solid rgba(0, 0, 0, 0.1);
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        border-left-color: #007bff;
+        animation: spin 1s linear infinite;
+        margin: 0 auto;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <header class="sticky-header">
+      <nav>
+        <div class="title">Doodle Board Gallery</div>
+        <div>
+          <a href="/" class="btn-small">New Drawing</a>
+        </div>
+      </nav>
+    </header>
+
+    <div class="container">
+      <h1>Public Drawings</h1>
+      <p>Browse and collaborate on public drawings created by the community.</p>
+
+      <div id="galleryContainer" class="gallery-container">
+        <div class="gallery-loader">
+          <div class="spinner"></div>
+          <p>Loading drawings...</p>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <div class="footer-content">
+        <p>
+          <a href="/">Home</a> |
+          <a href="/gallery">Gallery</a>
+        </p>
+      </div>
+    </footer>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        fetchGalleryItems();
+      });
+
+      async function fetchGalleryItems() {
+        try {
+          const response = await fetch("/api/drawings");
+          const drawings = await response.json();
+
+          renderGallery(drawings);
+        } catch (error) {
+          console.error("Error fetching drawings:", error);
+          showError("Failed to load drawings. Please try again later.");
+        }
+      }
+
+      function renderGallery(drawings) {
+        const galleryContainer = document.getElementById("galleryContainer");
+        galleryContainer.innerHTML = "";
+
+        if (drawings.length === 0) {
+          galleryContainer.innerHTML = `
+                    <div class="gallery-empty">
+                        <h2>No public drawings yet</h2>
+                        <p>Be the first to share your creation!</p>
+                        <a href="/" class="btn-primary">Create a Drawing</a>
+                    </div>
+                `;
+          return;
+        }
+
+        drawings.forEach((drawing) => {
+          const date = new Date(drawing.timestamp);
+          const formattedDate =
+            date.toLocaleDateString() + " " + date.toLocaleTimeString();
+
+          const item = document.createElement("div");
+          item.className = "gallery-item";
+          item.innerHTML = `
+                    <div class="gallery-item-preview" data-id="${drawing.id}">
+                        <img src="/api/drawing/${drawing.id}/thumbnail" alt="${drawing.name}" 
+                             onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'300\\' height=\\'200\\' viewBox=\\'0 0 300 200\\'><rect fill=\\'%23f0f0f0\\' width=\\'300\\' height=\\'200\\'/><text fill=\\'%23999999\\' font-family=\\'sans-serif\\' font-size=\\'24\\' dy=\\'10.5\\' font-weight=\\'bold\\' x=\\'50%\\' y=\\'50%\\' text-anchor=\\'middle\\'>Preview not available</text></svg>';" />
+                    </div>
+                    <div class="gallery-item-info">
+                        <h3 class="gallery-item-title">${drawing.name}</h3>
+                        <div class="gallery-item-date">${formattedDate}</div>
+                        <div class="gallery-item-actions">
+                            <button onclick="viewDrawing('${drawing.id}')">View</button>
+                            <button onclick="joinDrawing('${drawing.id}')">Join & Edit</button>
+                        </div>
+                    </div>
+                `;
+
+          galleryContainer.appendChild(item);
+        });
+      }
+
+      function showError(message) {
+        const galleryContainer = document.getElementById("galleryContainer");
+        galleryContainer.innerHTML = `
+                <div class="gallery-empty">
+                    <h2>Error</h2>
+                    <p>${message}</p>
+                    <button onclick="fetchGalleryItems()">Try Again</button>
+                </div>
+            `;
+      }
+
+      function viewDrawing(id) {
+        window.open(`/view?id=${id}`, "_blank");
+      }
+
+      function joinDrawing(id) {
+        window.location.href = `/?room=${id}`;
+      }
+    </script>
+  </body>
+</html>

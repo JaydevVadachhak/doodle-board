@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>View Drawing - Doodle Board</title>
+
+    <!-- STYLE -->
+    <link rel="stylesheet" href="./app.css" />
+    <style>
+      .view-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 20px 0;
+      }
+
+      .drawing-info {
+        width: 100%;
+        max-width: 1000px;
+        margin-bottom: 20px;
+        background-color: white;
+        padding: 15px;
+        border-radius: 4px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      }
+
+      .drawing-title {
+        font-size: 24px;
+        margin: 0 0 10px 0;
+      }
+
+      .drawing-meta {
+        color: #666;
+        font-size: 14px;
+        margin-bottom: 15px;
+      }
+
+      .drawing-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+      }
+
+      .drawing-actions button {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 3px;
+        background-color: #007bff;
+        color: white;
+        cursor: pointer;
+      }
+
+      .drawing-actions button:hover {
+        background-color: #0056b3;
+      }
+
+      .drawing-canvas {
+        width: 100%;
+        max-width: 1000px;
+        background-color: white;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .loading-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 400px;
+      }
+
+      .spinner {
+        border: 4px solid rgba(0, 0, 0, 0.1);
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        border-left-color: #007bff;
+        animation: spin 1s linear infinite;
+        margin-bottom: 20px;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <header class="sticky-header">
+      <nav>
+        <div class="title">Doodle Board</div>
+        <div>
+          <a href="/" class="btn-small">New Drawing</a>
+          <a href="/gallery" class="btn-small">Gallery</a>
+        </div>
+      </nav>
+    </header>
+
+    <div class="container">
+      <div class="view-container">
+        <div id="drawingInfo" class="drawing-info">
+          <h1 id="drawingTitle" class="drawing-title">Loading drawing...</h1>
+          <div id="drawingMeta" class="drawing-meta"></div>
+          <div class="drawing-actions">
+            <button id="editButton">Edit this drawing</button>
+            <button id="downloadButton">Download as PNG</button>
+            <button id="backButton">Back to Gallery</button>
+          </div>
+        </div>
+
+        <div id="canvasContainer" class="drawing-canvas">
+          <div class="loading-container">
+            <div class="spinner"></div>
+            <p>Loading drawing...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <div class="footer-content">
+        <p>
+          <a href="/">Home</a> |
+          <a href="/gallery">Gallery</a>
+        </p>
+      </div>
+    </footer>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const drawingId = urlParams.get("id");
+
+        if (!drawingId) {
+          showError("No drawing ID provided");
+          return;
+        }
+
+        fetchDrawing(drawingId);
+
+        document.getElementById("editButton").addEventListener("click", () => {
+          window.location.href = `/?room=${drawingId}`;
+        });
+
+        document.getElementById("backButton").addEventListener("click", () => {
+          window.location.href = "/gallery";
+        });
+      });
+
+      async function fetchDrawing(id) {
+        try {
+          const response = await fetch(`/api/drawing/${id}`);
+
+          if (!response.ok) {
+            throw new Error("Drawing not found");
+          }
+
+          const drawingData = await response.json();
+          renderDrawing(drawingData, id);
+        } catch (error) {
+          console.error("Error fetching drawing:", error);
+          showError(error.message || "Failed to load drawing");
+        }
+      }
+
+      function renderDrawing(drawingData, id) {
+        // Update drawing info
+        document.getElementById("drawingTitle").textContent = drawingData.name;
+
+        const date = new Date(drawingData.timestamp);
+        document.getElementById(
+          "drawingMeta"
+        ).textContent = `Created on ${date.toLocaleDateString()} at ${date.toLocaleTimeString()}`;
+
+        // Set up download button
+        document
+          .getElementById("downloadButton")
+          .addEventListener("click", () => {
+            downloadDrawing(drawingData.name);
+          });
+
+        // Render the drawing
+        const canvasContainer = document.getElementById("canvasContainer");
+        canvasContainer.innerHTML = "";
+
+        const canvas = document.createElement("canvas");
+        canvas.id = "viewCanvas";
+        canvas.width = 1000;
+        canvas.height = 500;
+        canvasContainer.appendChild(canvas);
+
+        const ctx = canvas.getContext("2d");
+
+        // Apply all drawing events to the canvas
+        if (drawingData.drawing && Array.isArray(drawingData.drawing)) {
+          drawingData.drawing.forEach((event) => {
+            applyDrawEvent(event, ctx);
+          });
+        }
+      }
+
+      function applyDrawEvent(event, ctx) {
+        switch (event.type) {
+          case "pencil":
+            drawPencilStroke(event, ctx);
+            break;
+          case "eraser":
+            drawEraserStroke(event, ctx);
+            break;
+          case "shape":
+            drawShape(event, ctx);
+            break;
+        }
+      }
+
+      function drawPencilStroke(event, ctx) {
+        ctx.strokeStyle = event.color;
+        ctx.lineWidth = event.size;
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.beginPath();
+
+        const points = event.points;
+        if (points.length < 2) return;
+
+        ctx.moveTo(points[0].x, points[0].y);
+
+        for (let i = 1; i < points.length; i++) {
+          ctx.lineTo(points[i].x, points[i].y);
+        }
+
+        ctx.stroke();
+        ctx.closePath();
+      }
+
+      function drawEraserStroke(event, ctx) {
+        ctx.globalCompositeOperation = "destination-out";
+        ctx.lineWidth = event.size;
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.beginPath();
+
+        const points = event.points;
+        if (points.length < 2) return;
+
+        ctx.moveTo(points[0].x, points[0].y);
+
+        for (let i = 1; i < points.length; i++) {
+          ctx.lineTo(points[i].x, points[i].y);
+        }
+
+        ctx.stroke();
+        ctx.closePath();
+        ctx.globalCompositeOperation = "source-over";
+      }
+
+      function drawShape(event, ctx) {
+        ctx.strokeStyle = event.color;
+        ctx.lineWidth = event.size;
+        ctx.beginPath();
+
+        switch (event.shape) {
+          case "rectangle":
+            ctx.rect(
+              event.startX,
+              event.startY,
+              event.endX - event.startX,
+              event.endY - event.startY
+            );
+            break;
+          case "line":
+            ctx.moveTo(event.startX, event.startY);
+            ctx.lineTo(event.endX, event.endY);
+            break;
+          case "circle":
+            const radius = Math.sqrt(
+              Math.pow(event.endX - event.startX, 2) +
+                Math.pow(event.endY - event.startY, 2)
+            );
+            ctx.arc(event.startX, event.startY, radius, 0, 2 * Math.PI);
+            break;
+        }
+        ctx.stroke();
+      }
+
+      function downloadDrawing(name) {
+        const canvas = document.getElementById("viewCanvas");
+        const image = canvas.toDataURL("image/png");
+        const link = document.createElement("a");
+        link.href = image;
+        link.download = `${name || "drawing"}.png`;
+        link.click();
+      }
+
+      function showError(message) {
+        const container = document.querySelector(".view-container");
+        container.innerHTML = `
+                <div class="drawing-info">
+                    <h1 class="drawing-title">Error</h1>
+                    <p>${message}</p>
+                    <div class="drawing-actions">
+                        <button onclick="window.location.href='/gallery'">Back to Gallery</button>
+                    </div>
+                </div>
+            `;
+      }
+    </script>
+  </body>
+</html>
