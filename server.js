@@ -22,7 +22,7 @@ try {
     const data = fs.readFileSync('drawings.json');
     Object.assign(savedDrawings, JSON.parse(data));
 } catch (err) {
-    console.log('No saved drawings found, starting fresh');
+    console.log('No saved drawings found, starting fresh', err);
 }
 
 // Save drawings periodically
@@ -81,12 +81,12 @@ io.on('connection', socket => {
     });
 
     // Handle save drawing
-    socket.on('saveDrawing', ({ roomId, name, public }) => {
+    socket.on('saveDrawing', ({ roomId, name, publicDrawings }) => {
         if (rooms[roomId]) {
             savedDrawings[roomId] = {
                 drawing: rooms[roomId].drawing,
                 name: name || `Drawing ${Object.keys(savedDrawings).length + 1}`,
-                public: public || false,
+                public: publicDrawings || false,
                 timestamp: Date.now(),
                 creator: socket.id
             };
@@ -146,7 +146,7 @@ app.get('/api/drawings', (req, res) => {
 
 app.get('/api/drawing/:id', (req, res) => {
     const id = req.params.id;
-    if (savedDrawings[id] && savedDrawings[id].public) {
+    if (savedDrawings[id]?.public) {
         res.json(savedDrawings[id]);
     } else {
         res.status(404).json({ error: 'Drawing not found' });

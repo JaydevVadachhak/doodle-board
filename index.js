@@ -230,11 +230,12 @@ function drawShape(e) {
       context.lineTo(currentX, currentY);
       break;
     case "circle":
-      const radius = Math.sqrt(
+      context.arc(shapeStartX, shapeStartY, Math.sqrt(
         Math.pow(currentX - shapeStartX, 2) +
         Math.pow(currentY - shapeStartY, 2)
-      );
-      context.arc(shapeStartX, shapeStartY, radius, 0, 2 * Math.PI);
+      ), 0, 2 * Math.PI);
+      break;
+    default:
       break;
   }
   context.stroke();
@@ -621,18 +622,17 @@ function drawShapeFromEvent(event) {
       context.lineTo(event.endX, event.endY);
       break;
     case "circle":
-      const radius = Math.sqrt(
+      context.arc(event.startX, event.startY, Math.sqrt(
         Math.pow(event.endX - event.startX, 2) +
         Math.pow(event.endY - event.startY, 2)
-      );
-      context.arc(event.startX, event.startY, radius, 0, 2 * Math.PI);
+      ), 0, 2 * Math.PI);
       break;
   }
   context.stroke();
 }
 
 function emitDrawEvent(eventData) {
-  if (socket && socket.connected) {
+  if (socket?.connected) {
     socket.emit('drawEvent', {
       roomId: roomId,
       event: eventData
@@ -641,13 +641,13 @@ function emitDrawEvent(eventData) {
 }
 
 function emitClearCanvas() {
-  if (socket && socket.connected) {
+  if (socket?.connected) {
     socket.emit('clearCanvas', roomId);
   }
 }
 
 function emitSaveDrawing() {
-  if (socket && socket.connected) {
+  if (socket?.connected) {
     socket.emit('saveDrawing', {
       roomId: roomId,
       name: drawingNameInput.value,
