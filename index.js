@@ -8,12 +8,8 @@ const clearButton = document.getElementById("clearButton");
 const saveButton = document.getElementById("saveButton");
 const eraserSizeInput = document.getElementById("eraserSize");
 const toolSelector = document.getElementById("toolSelector");
-const roomIdDisplay = document.getElementById("roomId");
-const userCountDisplay = document.getElementById("userCount");
 const undoButton = document.getElementById("undoButton");
 const redoButton = document.getElementById("redoButton");
-const shareButton = document.getElementById("shareButton");
-const publicCheckbox = document.getElementById("publicCheckbox");
 const drawingNameInput = document.getElementById("drawingName");
 const magnification = 1.5; // Adjust the magnification factor as needed
 let shapeStartX, shapeStartY;
@@ -30,10 +26,8 @@ let redoHistory = [];
 let currentDrawingState = null;
 let maxHistoryLength = 20;
 
-// Room and socket variables
-let socket;
-let roomId = generateRoomId();
-let userId = null;
+// Drawing events for replay
+let drawingEvents = [];
 
 canvas.addEventListener("mousemove", showMagnifier);
 canvas.addEventListener("mouseout", hideMagnifier);
@@ -126,9 +120,9 @@ function stopDrawing() {
   isDrawing = false;
   context.closePath();
 
-  // Emit the drawing event
+  // Add the drawing event to history
   if (currentDrawingState && currentDrawingState.points.length > 1) {
-    emitDrawEvent(currentDrawingState);
+    addDrawingEvent(currentDrawingState);
     saveDrawingState();
   }
 
@@ -178,9 +172,9 @@ function stopErasing() {
   context.closePath();
   context.globalCompositeOperation = "source-over";
 
-  // Emit the erasing event
+  // Add the erasing event to history
   if (currentDrawingState && currentDrawingState.points.length > 1) {
-    emitDrawEvent(currentDrawingState);
+    addDrawingEvent(currentDrawingState);
     saveDrawingState();
   }
 
@@ -261,8 +255,8 @@ function stopDrawingShape(e) {
     endY: currentY
   };
 
-  // Emit the shape event
-  emitDrawEvent(shapeEvent);
+  // Add the shape event to history
+  addDrawingEvent(shapeEvent);
   saveDrawingState();
 }
 
@@ -302,8 +296,9 @@ brushSize.addEventListener("change", (e) => {
 
 clearButton.addEventListener("click", () => {
   context.clearRect(0, 0, canvas.width, canvas.height);
-  emitClearCanvas();
+  drawingEvents = []; // Clear all drawing events
   saveDrawingState();
+  showNotification('Canvas cleared');
 });
 
 saveButton.addEventListener("click", () => {
@@ -312,10 +307,10 @@ saveButton.addEventListener("click", () => {
     return;
   }
 
-  // Save to server for collaboration
-  emitSaveDrawing();
+  // Save drawing to local storage
+  saveDrawingToLocalStorage();
 
-  // Also allow local download
+  // Also allow download as PNG
   const image = canvas.toDataURL("image/png");
   const link = document.createElement("a");
   link.href = image;
@@ -330,37 +325,6 @@ eraserSizeInput.addEventListener("change", (e) => {
 toolSelector.addEventListener("change", (e) => {
   currentTool = e.target.value;
   context.globalCompositeOperation = "source-over";
-});
-
-shareButton.addEventListener("click", () => {
-  const url = `${window.location.origin}${window.location.pathname}?room=${roomId}`;
-
-  if (navigator.clipboard) {
-    navigator.clipboard.writeText(url)
-      .then(() => {
-        showNotification('Room link copied to clipboard!');
-      })
-      .catch(err => {
-        console.error('Could not copy text: ', err);
-        promptShareLink(url);
-      });
-  } else {
-    promptShareLink(url);
-  }
-});
-
-function promptShareLink(url) {
-  const shareDialog = document.getElementById("shareDialog");
-  const shareLink = document.getElementById("shareLink");
-
-  shareLink.value = url;
-  shareDialog.style.display = "flex";
-
-  shareLink.select();
-}
-
-document.getElementById("closeShareDialog").addEventListener("click", () => {
-  document.getElementById("shareDialog").style.display = "none";
 });
 
 // Undo/Redo functionality
@@ -436,16 +400,47 @@ function restoreCanvasState() {
   }
 }
 
+function showNotification(message) {
+  const notification = document.getElementById("notification");
+  if (notification) {
+    notification.textContent = message;
+    notification.classList.add("show");
+
+    setTimeout(() => {
+      notification.classList.remove("show");
+    }, 3000);
+  } else {
+    console.log(message);
+  }
+}
+
 // Initialize the application
 function init() {
-  // Set up socket connection
-  initializeSocket();
-
   // Set up initial drawing state
   saveDrawingState();
 
-  // Update URL with room ID
-  window.history.replaceState(null, '', `?room=${roomId}`);
+  // Check URL for drawing ID to load
+  const urlParams = new URLSearchParams(window.location.search);
+  const drawingId = urlParams.get('id');
+
+  if (drawingId) {
+    // Try to load the specified drawing
+    const savedDrawings = JSON.parse(localStorage.getItem('doodleboardDrawings') || '[]');
+    const drawingIndex = savedDrawings.findIndex(drawing => drawing.name === drawingId);
+
+    if (drawingIndex >= 0) {
+      loadDrawingFromLocalStorage(drawingIndex);
+    } else {
+      showNotification('Drawing not found');
+    }
+  } else {
+    // No drawing to load, just initialize the canvas
+    drawingEvents = [];
+    drawHistory = [];
+    redoHistory = [];
+    saveDrawingState();
+    updateUndoRedoButtons();
+  }
 
   // Set up responsive canvas
   resizeCanvas();
@@ -474,78 +469,84 @@ function resizeCanvas() {
 // Start the application
 window.addEventListener('load', init);
 
-function initializeSocket() {
-  socket = io();
+// Local storage functions
+function saveDrawingToLocalStorage() {
+  const name = drawingNameInput.value.trim();
+  if (!name) return;
 
-  socket.on('connect', () => {
-    userId = socket.id;
-    joinRoom(roomId);
-  });
+  const drawingData = {
+    name: name,
+    events: drawingEvents,
+    timestamp: Date.now(),
+    thumbnail: canvas.toDataURL("image/png")
+  };
 
-  socket.on('initialDrawing', (drawingEvents) => {
-    // Clear canvas and replay all drawing events
+  // Get existing drawings or initialize empty array
+  let savedDrawings = JSON.parse(localStorage.getItem('doodleboardDrawings') || '[]');
+
+  // Check if drawing with this name already exists
+  const existingIndex = savedDrawings.findIndex(drawing => drawing.name === name);
+
+  if (existingIndex >= 0) {
+    // Update existing drawing
+    savedDrawings[existingIndex] = drawingData;
+    showNotification('Drawing updated successfully!');
+  } else {
+    // Add new drawing
+    savedDrawings.push(drawingData);
+    showNotification('Drawing saved successfully!');
+  }
+
+  // Save back to local storage
+  localStorage.setItem('doodleboardDrawings', JSON.stringify(savedDrawings));
+}
+
+function loadDrawingFromLocalStorage(index) {
+  const savedDrawings = JSON.parse(localStorage.getItem('doodleboardDrawings') || '[]');
+  if (index >= 0 && index < savedDrawings.length) {
+    const drawing = savedDrawings[index];
+
+    // Clear canvas
     context.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Set drawing name
+    drawingNameInput.value = drawing.name;
+
+    // Load drawing events - ensure it's an array
+    drawingEvents = Array.isArray(drawing.events) ? [...drawing.events] : [];
+
+    // Replay all drawing events
+    replayDrawingEvents();
+
+    showNotification('Drawing loaded successfully!');
+    return true;
+  }
+  return false;
+}
+
+function replayDrawingEvents() {
+  // Clear canvas
+  context.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Replay all events
+  if (Array.isArray(drawingEvents)) {
     drawingEvents.forEach(event => {
       applyDrawEvent(event);
     });
-    saveDrawingState();
-  });
-
-  socket.on('drawEvent', (event) => {
-    applyDrawEvent(event);
-  });
-
-  socket.on('clearCanvas', () => {
-    context.clearRect(0, 0, canvas.width, canvas.height);
-    saveDrawingState();
-  });
-
-  socket.on('userJoined', (data) => {
-    updateUserCount(data.userCount);
-  });
-
-  socket.on('userLeft', (data) => {
-    updateUserCount(data.userCount);
-  });
-
-  socket.on('drawingSaved', (response) => {
-    if (response.success) {
-      showNotification('Drawing saved successfully!');
-    }
-  });
-}
-
-function joinRoom(newRoomId) {
-  roomId = newRoomId;
-  socket.emit('joinRoom', roomId);
-  roomIdDisplay.textContent = roomId;
-}
-
-function generateRoomId() {
-  // Get room ID from URL or generate a new one
-  const urlParams = new URLSearchParams(window.location.search);
-  const roomFromUrl = urlParams.get('room');
-
-  if (roomFromUrl) {
-    return roomFromUrl;
   }
 
-  // Generate a random 6-character room ID
-  return Math.random().toString(36).substring(2, 8);
+  // Reset and initialize the undo history with the current state
+  drawHistory = [];
+  redoHistory = [];
+  saveDrawingState();
+
+  // Update UI buttons
+  updateUndoRedoButtons();
 }
 
-function updateUserCount(count) {
-  userCountDisplay.textContent = count;
-}
-
-function showNotification(message) {
-  const notification = document.getElementById("notification");
-  notification.textContent = message;
-  notification.classList.add("show");
-
-  setTimeout(() => {
-    notification.classList.remove("show");
-  }, 3000);
+// Drawing event handling
+function addDrawingEvent(event) {
+  drawingEvents.push(event);
 }
 
 function applyDrawEvent(event) {
@@ -629,29 +630,4 @@ function drawShapeFromEvent(event) {
       break;
   }
   context.stroke();
-}
-
-function emitDrawEvent(eventData) {
-  if (socket?.connected) {
-    socket.emit('drawEvent', {
-      roomId: roomId,
-      event: eventData
-    });
-  }
-}
-
-function emitClearCanvas() {
-  if (socket?.connected) {
-    socket.emit('clearCanvas', roomId);
-  }
-}
-
-function emitSaveDrawing() {
-  if (socket?.connected) {
-    socket.emit('saveDrawing', {
-      roomId: roomId,
-      name: drawingNameInput.value,
-      public: publicCheckbox.checked
-    });
-  }
 }

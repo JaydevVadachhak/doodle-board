@@ -98,8 +98,8 @@
       <nav>
         <div class="title">Doodle Board</div>
         <div>
-          <a href="/" class="btn-small">New Drawing</a>
-          <a href="/gallery" class="btn-small">Gallery</a>
+          <a href="./index.html" class="btn-small">New Drawing</a>
+          <a href="./gallery.html" class="btn-small">Gallery</a>
         </div>
       </nav>
     </header>
@@ -128,8 +128,8 @@
     <footer>
       <div class="footer-content">
         <p>
-          <a href="/">Home</a> |
-          <a href="/gallery">Gallery</a>
+          <a href="./index.html">Home</a> |
+          <a href="./gallery.html">Gallery</a>
         </p>
       </div>
     </footer>
@@ -144,34 +144,41 @@
           return;
         }
 
-        fetchDrawing(drawingId);
+        loadDrawingFromLocalStorage(drawingId);
 
         document.getElementById("editButton").addEventListener("click", () => {
-          window.location.href = `/?room=${drawingId}`;
+          window.location.href = `./index.html?id=${encodeURIComponent(
+            drawingId
+          )}`;
         });
 
         document.getElementById("backButton").addEventListener("click", () => {
-          window.location.href = "/gallery";
+          window.location.href = "./gallery.html";
         });
       });
 
-      async function fetchDrawing(id) {
+      function loadDrawingFromLocalStorage(drawingId) {
         try {
-          const response = await fetch(`/api/drawing/${id}`);
+          // Get drawings from local storage
+          const savedDrawings = JSON.parse(
+            localStorage.getItem("doodleboardDrawings") || "[]"
+          );
 
-          if (!response.ok) {
+          // Find the drawing with the matching name
+          const drawing = savedDrawings.find((d) => d.name === drawingId);
+
+          if (!drawing) {
             throw new Error("Drawing not found");
           }
 
-          const drawingData = await response.json();
-          renderDrawing(drawingData, id);
+          renderDrawing(drawing);
         } catch (error) {
-          console.error("Error fetching drawing:", error);
+          console.error("Error loading drawing:", error);
           showError(error.message || "Failed to load drawing");
         }
       }
 
-      function renderDrawing(drawingData, id) {
+      function renderDrawing(drawingData) {
         // Update drawing info
         document.getElementById("drawingTitle").textContent = drawingData.name;
 
@@ -184,7 +191,7 @@
         document
           .getElementById("downloadButton")
           .addEventListener("click", () => {
-            downloadDrawing(drawingData.name);
+            downloadDrawing(drawingData);
           });
 
         // Render the drawing
@@ -199,9 +206,18 @@
 
         const ctx = canvas.getContext("2d");
 
+        // If we have a thumbnail, use it as a background
+        if (drawingData.thumbnail) {
+          const img = new Image();
+          img.onload = function () {
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          };
+          img.src = drawingData.thumbnail;
+        }
+
         // Apply all drawing events to the canvas
-        if (drawingData.drawing && Array.isArray(drawingData.drawing)) {
-          drawingData.drawing.forEach((event) => {
+        if (drawingData.events && Array.isArray(drawingData.events)) {
+          drawingData.events.forEach((event) => {
             applyDrawEvent(event, ctx);
           });
         }
@@ -281,23 +297,37 @@
             ctx.lineTo(event.endX, event.endY);
             break;
           case "circle":
-            const radius = Math.sqrt(
-              Math.pow(event.endX - event.startX, 2) +
-                Math.pow(event.endY - event.startY, 2)
+            ctx.arc(
+              event.startX,
+              event.startY,
+              Math.sqrt(
+                Math.pow(event.endX - event.startX, 2) +
+                  Math.pow(event.endY - event.startY, 2)
+              ),
+              0,
+              2 * Math.PI
             );
-            ctx.arc(event.startX, event.startY, radius, 0, 2 * Math.PI);
             break;
         }
         ctx.stroke();
       }
 
-      function downloadDrawing(name) {
-        const canvas = document.getElementById("viewCanvas");
-        const image = canvas.toDataURL("image/png");
-        const link = document.createElement("a");
-        link.href = image;
-        link.download = `${name || "drawing"}.png`;
-        link.click();
+      function downloadDrawing(drawingData) {
+        // If we have a thumbnail, use it directly
+        if (drawingData.thumbnail) {
+          const link = document.createElement("a");
+          link.href = drawingData.thumbnail;
+          link.download = `${drawingData.name || "drawing"}.png`;
+          link.click();
+        } else {
+          // Otherwise use the canvas
+          const canvas = document.getElementById("viewCanvas");
+          const image = canvas.toDataURL("image/png");
+          const link = document.createElement("a");
+          link.href = image;
+          link.download = `${drawingData.name || "drawing"}.png`;
+          link.click();
+        }
       }
 
       function showError(message) {
@@ -307,7 +337,7 @@
                     <h1 class="drawing-title">Error</h1>
                     <p>${message}</p>
                     <div class="drawing-actions">
-                        <button onclick="window.location.href='/gallery'">Back to Gallery</button>
+                        <button onclick="window.location.href='./gallery.html'">Back to Gallery</button>
                     </div>
                 </div>
             `;

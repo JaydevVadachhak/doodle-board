@@ -7,18 +7,14 @@
 
     <!-- STYLE -->
     <link rel="stylesheet" href="./app.css" />
-    <!-- Socket.io client -->
-    <script src="/socket.io/socket.io.js"></script>
   </head>
 
   <body>
     <header class="sticky-header">
       <nav>
         <div class="title">Doodle Board</div>
-        <div class="room-info">
-          Room: <span id="roomId">Loading...</span> | Users:
-          <span id="userCount">1</span>
-          <button id="shareButton" class="btn-small">Share</button>
+        <div>
+          <a href="./gallery.html" class="btn-small">Gallery</a>
         </div>
       </nav>
     </header>
@@ -54,10 +50,6 @@
         <div class="tool-section">
           <label for="drawingName">Drawing Name:</label>
           <input type="text" id="drawingName" placeholder="My Masterpiece" />
-          <label for="publicCheckbox">
-            <input type="checkbox" id="publicCheckbox" />
-            Make Public
-          </label>
           <button id="saveButton">Save Drawing</button>
         </div>
       </div>
@@ -68,25 +60,13 @@
       </div>
 
       <div class="notification" id="notification"></div>
-
-      <div class="share-dialog" id="shareDialog">
-        <div class="share-dialog-content">
-          <h3>Share this drawing room</h3>
-          <p>Copy this link to invite others to collaborate:</p>
-          <div class="share-link-container">
-            <input type="text" id="shareLink" readonly />
-            <button id="copyLink">Copy</button>
-          </div>
-          <button id="closeShareDialog">Close</button>
-        </div>
-      </div>
     </div>
 
     <footer>
       <div class="footer-content">
         <p>
-          <a href="/">Home</a> |
-          <a href="/gallery">Gallery</a>
+          <a href="./index.html">Home</a> |
+          <a href="./gallery.html">Gallery</a>
         </p>
       </div>
     </footer>

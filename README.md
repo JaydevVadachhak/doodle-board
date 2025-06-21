@@ -1,6 +1,6 @@
 # DoodleBoard
 
-A collaborative, real-time drawing application that allows multiple users to create, share, and save digital doodles directly in the browser.
+A pure client-side drawing application that allows you to create, save, and view digital doodles directly in your browser using local storage.
 
 ## Features
 
@@ -10,35 +10,20 @@ A collaborative, real-time drawing application that allows multiple users to cre
 - **Adjustable Brush Sizes**: Customize both pencil and eraser sizes
 - **Magnifier Tool**: See a magnified view of your current drawing area
 
-### Collaboration Features
-- **Real-time Collaboration**: Draw together with others in the same room
-- **Room Sharing**: Generate and share room links for collaborative drawing sessions
-- **User Presence**: See how many users are currently in your drawing room
+### Storage Features
+- **Local Storage**: Save your drawings to your browser's local storage
+- **Gallery View**: Browse and manage your saved drawings
+- **View Mode**: View drawings in a dedicated view page
+- **Download**: Download your creations as PNG images
 
 ### Advanced Features
 - **Undo/Redo**: Easily fix mistakes with undo and redo functionality
-- **Save & Download**: Save drawings to the server and download as PNG images
-- **Public Gallery**: Browse and join public drawings created by other users
-- **View Mode**: View drawings without editing them
 - **Responsive Design**: Works on desktop and mobile devices
 
 ## How to Use
 
-### Setup
-1. Install dependencies:
-   ```
-   npm install
-   ```
-
-2. Start the server:
-   ```
-   npm start
-   ```
-
-3. Open your browser and navigate to:
-   ```
-   http://localhost:3000
-   ```
+### Getting Started
+Simply open the `index.html` file in your web browser to start drawing. No server or installation required!
 
 ### Drawing
 1. Select your preferred drawing tool from the dropdown menu
@@ -47,41 +32,29 @@ A collaborative, real-time drawing application that allows multiple users to cre
 4. Use the magnifier to see details of your work
 5. Save your creation using the "Save Drawing" button
 
-### Collaboration
-1. Share your room link with others by clicking the "Share" button
-2. Others can join your room and draw with you in real-time
-3. All changes are synchronized across all connected users
-
-### Gallery
-1. Navigate to the Gallery page to see public drawings
-2. View drawings in read-only mode or join to collaborate
-3. Make your own drawings public by checking "Make Public" when saving
+### Managing Drawings
+1. Navigate to the Gallery page to see your saved drawings
+2. View drawings in read-only mode or edit existing drawings
+3. Delete drawings you no longer want to keep
 
 ## Technologies Used
 
 - HTML5 Canvas
 - Vanilla JavaScript
 - CSS3
-- Node.js
-- Express
-- Socket.io for real-time communication
+- Local Storage API
 
 ## Project Structure
 
 - `index.html` - Main application interface
 - `app.css` - Styling for the application
 - `index.js` - Client-side JavaScript functionality
-- `server.js` - Node.js server for hosting and collaboration
-- `gallery.html` - Public gallery interface
+- `gallery.html` - Gallery interface for browsing saved drawings
 - `view.html` - Read-only drawing viewer
 
-## Development
+## Deployment
 
-To run the development server with auto-reload:
-
-```
-npm run dev
-```
+This application can be deployed on any static file hosting service or run directly from your local file system.
 
 ## License
 
