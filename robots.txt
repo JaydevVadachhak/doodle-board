@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://doodleboard.netlify.app/sitemap.xml 

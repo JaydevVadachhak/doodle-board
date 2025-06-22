@@ -3,10 +3,77 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>View Drawing - Doodle Board</title>
+    <title>View Drawing - DoodleBoard | Online Art Viewer</title>
+    <link rel="icon" href="./icons/icon-192x192.png" />
+    <meta
+      name="description"
+      content="View, download, and share your DoodleBoard digital artwork. Our online art viewer lets you showcase your drawings created with our free drawing tool."
+    />
+    <meta
+      name="keywords"
+      content="drawing viewer, digital art display, doodle viewer, art showcase, online drawing display, web canvas viewer"
+    />
+    <meta name="author" content="SoftHeartEngineer" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://doodleboard.netlify.app/view.html" />
+    <link rel="manifest" href="./manifest.json" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta
+      property="og:url"
+      content="https://doodleboard.netlify.app/view.html"
+    />
+    <meta
+      property="og:title"
+      content="View Drawing - DoodleBoard | Online Art Viewer"
+    />
+    <meta
+      property="og:description"
+      content="View, download, and share your DoodleBoard digital artwork. Our online art viewer lets you showcase your drawings."
+    />
+    <meta
+      property="og:image"
+      content="https://doodleboard.netlify.app/doodleboard-viewer-preview.jpg"
+    />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta
+      property="twitter:url"
+      content="https://doodleboard.netlify.app/view.html"
+    />
+    <meta
+      property="twitter:title"
+      content="View Drawing - DoodleBoard | Online Art Viewer"
+    />
+    <meta
+      property="twitter:description"
+      content="View, download, and share your DoodleBoard digital artwork. Our online art viewer lets you showcase your drawings."
+    />
+    <meta
+      property="twitter:image"
+      content="https://doodleboard.netlify.app/doodleboard-viewer-preview.jpg"
+    />
 
     <!-- STYLE -->
     <link rel="stylesheet" href="./app.css" />
+
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "ImageObject",
+        "name": "DoodleBoard Drawing Viewer",
+        "url": "https://doodleboard.netlify.app/view.html",
+        "description": "View, download, and share your DoodleBoard digital artwork.",
+        "isPartOf": {
+          "@type": "WebApplication",
+          "name": "DoodleBoard",
+          "url": "https://doodleboard.netlify.app/index.html"
+        }
+      }
+    </script>
     <style>
       .view-container {
         display: flex;
@@ -91,6 +158,20 @@
         }
       }
     </style>
+    <!-- Google tag (gtag.js) -->
+    <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id=G-JNSJ0VC3QJ"
+    ></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
+
+      gtag("config", "G-JNSJ0VC3QJ");
+    </script>
   </head>
 
   <body>
